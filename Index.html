@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MY Stores — Credit Book</title>
+<style>
+:root{--red:#b51f2a;--dark:#20242a;--bg:#f4f5f7;--green:#16834a;--muted:#68707a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,"Noto Sans Bengali",sans-serif;color:var(--dark)}
+header{background:var(--red);color:#fff;padding:18px 20px}header h1{margin:0;font-size:23px}header p{margin:6px 0 0;font-size:13px;opacity:.9}
+.wrap{max-width:1100px;margin:18px auto;padding:0 12px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.card,.panel{background:#fff;border-radius:12px;padding:15px;box-shadow:0 2px 10px #0000000a}.card span{display:block;color:var(--muted);font-size:13px}.card strong{display:block;font-size:23px;margin-top:7px}.panel{margin-bottom:14px}.panel h2{font-size:17px;margin:0 0 12px}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.row.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+label{font-size:13px;display:block;margin:0 0 5px;color:#454b53}input,select,textarea{width:100%;padding:10px;border:1px solid #d8dce1;border-radius:8px;font:inherit;background:white}textarea{min-height:65px;resize:vertical}
+button{border:0;border-radius:8px;padding:10px 13px;cursor:pointer;font-weight:600;background:var(--red);color:white}button.secondary{background:#e9edf1;color:#252a30}button.green{background:var(--green)}button.danger{background:#b42318}button.small{font-size:12px;padding:7px 9px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #edf0f2;vertical-align:top}th{color:#59616b;background:#fafbfc;font-weight:600}.tablewrap{overflow-x:auto}.muted{color:var(--muted);font-size:12px}.amount{font-weight:700;white-space:nowrap}.due{color:#b42318}.paid{color:var(--green)}.hidden{display:none!important}.pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#fff0f0;color:#a31c26;font-size:12px}.filelink{display:inline-block;margin-top:5px;color:#a31c26;word-break:break-word}.empty{text-align:center;color:var(--muted);padding:22px}
+footer{font-size:12px;color:#68707a;text-align:center;padding:8px 15px 25px}
+@media(max-width:650px){.cards{grid-template-columns:1fr}.row,.row.three{grid-template-columns:1fr}header h1{font-size:20px}th,td{padding:8px 6px;font-size:12px}}
+</style>
+</head>
+<body>
+<header><h1>M.Y. Stores — Credit Book</h1><p>কাস্টমারের বাকি, জমা, নোট ও বিল এক জায়গায় রাখুন</p></header>
+<div class="wrap">
+  <div class="cards">
+    <div class="card"><span>মোট বাকি (₹)</span><strong id="totalDue">₹0.00</strong></div>
+    <div class="card"><span>কাস্টমার</span><strong id="customerCount">0</strong></div>
+    <div class="card"><span>বাকি আছে এমন কাস্টমার</span><strong id="owingCount">0</strong></div>
+  </div>
+  <section class="panel">
+    <h2>১. নতুন কাস্টমার যোগ করুন</h2>
+    <form id="customerForm">
+      <div class="row three">
+        <div><label for="custName">কাস্টমারের নাম *</label><input id="custName" required maxlength="100" placeholder="নাম লিখুন"></div>
+        <div><label for="custPhone">মোবাইল নম্বর</label><input id="custPhone" inputmode="tel" maxlength="20" placeholder="ঐচ্ছিক"></div>
+        <div><label for="custInfo">ঠিকানা / পরিচিতি</label><input id="custInfo" maxlength="200" placeholder="ঐচ্ছিক"></div>
+      </div>
+      <div class="actions"><button type="submit">কাস্টমার সেভ করুন</button></div>
+    </form>
+  </section>
+  <section class="panel">
+    <h2>২. কাস্টমার তালিকা</h2>
+    <div class="row">
+      <div><label for="searchCustomer">নাম / মোবাইল দিয়ে খুঁজুন</label><input id="searchCustomer" placeholder="Search customer..."></div>
+      <div><label for="filterCustomer">দেখান</label><select id="filterCustomer"><option value="all">সব কাস্টমার</option><option value="due">শুধু বাকি আছে</option><option value="clear">বাকি নেই</option></select></div>
+    </div>
+    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>কাস্টমার</th><th>মোবাইল</th><th>বর্তমান বাকি</th><th>কাজ</th></tr></thead><tbody id="customerRows"></tbody></table></div>
+  </section>
+  <section class="panel hidden" id="ledgerPanel">
+    <h2 id="ledgerTitle">কাস্টমারের হিসাব</h2>
+    <div id="customerDetails" class="muted"></div>
+    <div class="cards" style="margin-top:12px">
+      <div class="card"><span>মোট বাকি যোগ</span><strong id="ledgerCredit">₹0.00</strong></div>
+      <div class="card"><span>মোট জমা</span><strong id="ledgerPaid">₹0.00</strong></div>
+      <div class="card"><span>এখনও বাকি</span><strong id="ledgerDue">₹0.00</strong></div>
+    </div>
+    <h2>নতুন এন্ট্রি</h2>
+    <form id="entryForm">
+      <div class="row three">
+        <div><label for="entryType">এন্ট্রির ধরন *</label><select id="entryType"><option value="credit">বাকি যোগ (+)</option><option value="payment">টাকা জমা (−)</option></select></div>
+        <div><label for="entryAmount">টাকার পরিমাণ (₹) *</label><input id="entryAmount" type="number" min="0.01" step="0.01" required placeholder="0.00"></div>
+        <div><label for="entryDate">তারিখ *</label><input id="entryDate" type="date" required></div>
+      </div>
+      <div style="margin-top:10px"><label for="entryNote">নোট (প্রতিটি এন্ট্রির জন্য)</label><textarea id="entryNote" maxlength="1000" placeholder="যেমন: চাল-ডাল, বিল নম্বর, পেমেন্টের বিবরণ..."></textarea></div>
+      <div style="margin-top:10px"><label for="entryBill">বিল / রসিদ আপলোড (ছবি বা PDF)</label><input id="entryBill" type="file" accept="image/*,.pdf,application/pdf"><div class="muted">একটি এন্ট্রিতে একটি ফাইল। বড় ফাইলের বদলে ছবি/PDF ছোট করে আপলোড করুন।</div></div>
+      <div class="actions"><button type="submit">এন্ট্রি সেভ করুন</button><button type="button" class="secondary" id="closeLedger">বন্ধ করুন</button></div>
+    </form>
+    <h2 style="margin-top:22px">লেনদেনের ইতিহাস</h2>
+    <div class="tablewrap"><table><thead><tr><th>তারিখ</th><th>ধরন</th><th>পরিমাণ</th><th>নোট / বিল</th><th>কাজ</th></tr></thead><tbody id="entryRows"></tbody></table></div>
+  </section>
+  <section class="panel">
+    <h2>৩. ডেটা ব্যাকআপ</h2>
+    <p class="muted">এই অ্যাপের ডেটা এই ব্রাউজার ও এই কম্পিউটারে থাকে। ব্রাউজারের ডেটা মুছলে হিসাব হারাতে পারেন। নিয়মিত ব্যাকআপ ডাউনলোড করুন। অন্য কম্পিউটারে নেওয়ার জন্য JSON ব্যাকআপ এক্সপোর্ট/ইমপোর্ট করুন।</p>
+    <div class="actions"><button id="exportBtn" class="green">ব্যাকআপ ডাউনলোড</button><label class="secondary" style="display:inline-flex;align-items:center;padding:10px 13px;border-radius:8px;cursor:pointer;background:#e9edf1;font-weight:600">ব্যাকআপ ইমপোর্ট<input id="importFile" type="file" accept=".json,application/json" style="display:none"></label></div>
+  </section>
+</div>
+<footer>Offline Credit Book · M.Y. Stores · ডেটা শুধু আপনার ব্রাউজারে সংরক্ষিত</footer>
+<script>
+const DB_NAME='MYStoresCreditBook', DB_VERSION=1;
+let db, activeCustomerId=null;
+const $=id=>document.getElementById(id);
+const money=n=>'₹'+(Number(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const today=()=>new Date().toLocaleDateString('en-CA');
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('customers')){const s=d.createObjectStore('customers',{keyPath:'id'});s.createIndex('name','name',{unique:false})}if(!d.objectStoreNames.contains('entries')){const s=d.createObjectStore('entries',{keyPath:'id'});s.createIndex('customerId','customerId',{unique:false})}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+function tx(store,mode='readonly'){return db.transaction(store,mode).objectStore(store)}
+function all(store){return new Promise((resolve,reject)=>{const r=tx(store).getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function put(store,value){return new Promise((resolve,reject)=>{const r=tx(store,'readwrite').put(value);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function del(store,id){return new Promise((resolve,reject)=>{const r=tx(store,'readwrite').delete(id);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+function uid(){return crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)}
+async function balances(){const [cs,es]=await Promise.all([all('customers'),all('entries')]);const map={};cs.forEach(c=>map[c.id]={customer:c,credit:0,paid:0,due:0});es.forEach(e=>{if(map[e.customerId]){if(e.type==='credit')map[e.customerId].credit+=Number(e.amount);else map[e.customerId].paid+=Number(e.amount)}});Object.values(map).forEach(x=>x.due=x.credit-x.paid);return {cs,es,map}}
+async function renderCustomers(){const {cs,map}=await balances();const q=$('searchCustomer').value.trim().toLowerCase(),filter=$('filterCustomer').value;const rows=cs.filter(c=>(c.name+' '+(c.phone||'')+' '+(c.info||'')).toLowerCase().includes(q)).filter(c=>filter==='all'||(filter==='due'?map[c.id].due>0.009:map[c.id].due<=0.009)).sort((a,b)=>a.name.localeCompare(b.name));$('customerRows').innerHTML=rows.map(c=>{const x=map[c.id];return `<tr><td><strong>${esc(c.name)}</strong><div class="muted">${esc(c.info||'')}</div></td><td>${esc(c.phone||'—')}</td><td class="amount ${x.due>0.009?'due':'paid'}">${money(Math.max(0,x.due))}</td><td><button class="small" onclick="openLedger('${c.id}')">হিসাব খুলুন</button> <button class="small secondary" onclick="editCustomer('${c.id}')">এডিট</button> <button class="small danger" onclick="deleteCustomer('${c.id}')">ডিলিট</button></td></tr>`}).join('')||'<tr><td colspan="4" class="empty">কোনও কাস্টমার পাওয়া যায়নি</td></tr>';
+const total=Object.values(map).reduce((a,x)=>a+Math.max(0,x.due),0);$('totalDue').textContent=money(total);$('customerCount').textContent=cs.length;$('owingCount').textContent=Object.values(map).filter(x=>x.due>0.009).length;
+if(activeCustomerId&&!map[activeCustomerId]){$('ledgerPanel').classList.add('hidden');activeCustomerId=null}else if(activeCustomerId)renderLedger()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('customerForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('custName').value.trim();if(!name)return;await put('customers',{id:uid(),name,phone:$('custPhone').value.trim(),info:$('custInfo').value.trim(),createdAt:new Date().toISOString()});e.target.reset();await renderCustomers();alert('কাস্টমার সেভ হয়েছে।')});
+window.editCustomer=async id=>{const cs=await all('customers'),c=cs.find(x=>x.id===id);if(!c)return;const name=prompt('কাস্টমারের নাম:',c.name);if(name===null)return;if(!name.trim())return alert('নাম খালি রাখা যাবে না।');const phone=prompt('মোবাইল নম্বর:',c.phone||'');if(phone===null)return;const info=prompt('ঠিকানা / পরিচিতি:',c.info||'');if(info===null)return;await put('customers',{...c,name:name.trim(),phone:phone.trim(),info:info.trim()});renderCustomers()};
+window.deleteCustomer=async id=>{const cs=await all('customers');const c=cs.find(x=>x.id===id);if(!c)return;const es=(await all('entries')).filter(x=>x.customerId===id);if(!confirm(`“${c.name}” কাস্টমারকে ডিলিট করবেন? তাঁর ${es.length}টি লেনদেন এবং সংযুক্ত বিলও স্থায়ীভাবে মুছে যাবে। এই কাজ ফেরানো যাবে না। আগে Backup নেওয়া আছে কি না নিশ্চিত করুন।`))return;if(!confirm(`শেষবার নিশ্চিত করুন: ${c.name} এবং তাঁর সব হিসাব মুছে ফেলবেন?`))return;for(const entry of es)await del('entries',entry.id);await del('customers',id);if(activeCustomerId===id){activeCustomerId=null;$('ledgerPanel').classList.add('hidden')};await renderCustomers();alert('কাস্টমার ও তাঁর হিসাব ডিলিট করা হয়েছে।')};
+window.openLedger=async id=>{activeCustomerId=id;$('ledgerPanel').classList.remove('hidden');$('entryDate').value=today();$('entryForm').reset();$('entryDate').value=today();await renderLedger();$('ledgerPanel').scrollIntoView({behavior:'smooth',block:'start'})};
+$('closeLedger').onclick=()=>{$('ledgerPanel').classList.add('hidden');activeCustomerId=null};
+async function renderLedger(){if(!activeCustomerId)return;const {map,es}=await balances(),x=map[activeCustomerId];if(!x)return;$('ledgerTitle').textContent=x.customer.name+' — হিসাব';$('customerDetails').textContent=[x.customer.phone,x.customer.info].filter(Boolean).join(' · ');$('ledgerCredit').textContent=money(x.credit);$('ledgerPaid').textContent=money(x.paid);$('ledgerDue').textContent=money(Math.max(0,x.due));const entries=es.filter(e=>e.customerId===activeCustomerId).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));$('entryRows').innerHTML=entries.map(e=>`<tr><td>${esc(e.date||'')}</td><td><span class="pill" style="${e.type==='payment'?'background:#e7f7ee;color:#126b3d':''}">${e.type==='credit'?'বাকি যোগ':'টাকা জমা'}</span></td><td class="amount ${e.type==='credit'?'due':'paid'}">${e.type==='credit'?'+':'−'}${money(e.amount)}</td><td>${e.note?'<div>'+esc(e.note).replace(/\n/g,'<br>')+'</div>':''}${e.bill?`<a class="filelink" href="${e.bill.data}" download="${esc(e.bill.name)}" target="_blank">📎 ${esc(e.bill.name)}</a>`:''}${!e.note&&!e.bill?'<span class="muted">—</span>':''}</td><td><button class="small secondary" onclick="editEntry('${e.id}')">এডিট</button> <button class="small danger" onclick="deleteEntry('${e.id}')">মুছুন</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">এখনও কোনও লেনদেন নেই</td></tr>'}
+$('entryForm').addEventListener('submit',async e=>{e.preventDefault();if(!activeCustomerId)return;const amount=Number($('entryAmount').value);if(!Number.isFinite(amount)||amount<=0)return alert('সঠিক টাকার পরিমাণ লিখুন।');const {map}=await balances();const current=map[activeCustomerId];if(!current)return;const type=$('entryType').value;if(type==='payment'&&amount>current.due+0.009&&!confirm('জমার টাকা বর্তমান বাকি থেকে বেশি। তবুও সেভ করবেন?'))return;
+let bill=null;const f=$('entryBill').files[0];if(f){if(f.size>8*1024*1024)return alert('ফাইল 8 MB-এর বেশি। ছোট ছবি/PDF ব্যবহার করুন।');bill={name:f.name,type:f.type||'application/octet-stream',data:await fileData(f)}}
+try{await put('entries',{id:uid(),customerId:activeCustomerId,type,amount,date:$('entryDate').value||today(),note:$('entryNote').value.trim(),bill,createdAt:new Date().toISOString()});e.target.reset();$('entryDate').value=today();await renderCustomers();alert('লেনদেন সেভ হয়েছে।')}catch(err){alert('সেভ করা যায়নি। ফাইলটি ছোট করে আবার চেষ্টা করুন।')}})
+function fileData(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(file)})}
+window.deleteEntry=async id=>{if(confirm('এই লেনদেনটি মুছে ফেলবেন?')){await del('entries',id);await renderCustomers()}}
+window.editEntry=async id=>{const es=await all('entries'),e=es.find(x=>x.id===id);if(!e)return;const amount=prompt('টাকার পরিমাণ:',e.amount);if(amount===null)return;if(!Number.isFinite(Number(amount))||Number(amount)<=0)return alert('সঠিক পরিমাণ দিন।');const date=prompt('তারিখ (YYYY-MM-DD):',e.date);if(date===null)return;const note=prompt('নোট:',e.note||'');if(note===null)return;await put('entries',{...e,amount:Number(amount),date,note});await renderCustomers()};
+$('searchCustomer').addEventListener('input',renderCustomers);$('filterCustomer').addEventListener('change',renderCustomers);
+$('exportBtn').onclick=async()=>{const [customers,entries]=await Promise.all([all('customers'),all('entries')]);const blob=new Blob([JSON.stringify({app:'MY Stores Credit Book',version:1,exportedAt:new Date().toISOString(),customers,entries},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='MY-Stores-Credit-Backup-'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
+$('importFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const obj=JSON.parse(await f.text());if(!Array.isArray(obj.customers)||!Array.isArray(obj.entries))throw Error('invalid');if(!confirm(`ব্যাকআপে ${obj.customers.length} জন কাস্টমার ও ${obj.entries.length}টি এন্ট্রি আছে। বর্তমান ডেটার সঙ্গে যোগ হবে। চালাবেন?`))return;for(const c of obj.customers)await put('customers',c);for(const en of obj.entries)await put('entries',en);await renderCustomers();alert('ব্যাকআপ ইমপোর্ট সম্পূর্ণ।')}catch(err){alert('ফাইলটি সঠিক Credit Book ব্যাকআপ নয়।')}finally{e.target.value=''}});
+(async()=>{try{db=await openDB();await renderCustomers()}catch(e){alert('এই ব্রাউজারে ডেটাবেস চালু করা যায়নি। Chrome/Edge-এর আপডেটেড সংস্করণ ব্যবহার করুন।')}})();
+</script>
+</body></html>
